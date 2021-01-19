@@ -225,7 +225,7 @@ func (x HtlcEvent_EventType) String() string {
 }
 
 func (HtlcEvent_EventType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{17, 0}
+	return fileDescriptor_7a0613f69d37b0a5, []int{22, 0}
 }
 
 type SendPaymentRequest struct {
@@ -1042,6 +1042,245 @@ func (m *PairData) GetSuccessAmtMsat() int64 {
 	return 0
 }
 
+type GetMissionControlConfigRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetMissionControlConfigRequest) Reset()         { *m = GetMissionControlConfigRequest{} }
+func (m *GetMissionControlConfigRequest) String() string { return proto.CompactTextString(m) }
+func (*GetMissionControlConfigRequest) ProtoMessage()    {}
+func (*GetMissionControlConfigRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7a0613f69d37b0a5, []int{12}
+}
+
+func (m *GetMissionControlConfigRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetMissionControlConfigRequest.Unmarshal(m, b)
+}
+func (m *GetMissionControlConfigRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetMissionControlConfigRequest.Marshal(b, m, deterministic)
+}
+func (m *GetMissionControlConfigRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetMissionControlConfigRequest.Merge(m, src)
+}
+func (m *GetMissionControlConfigRequest) XXX_Size() int {
+	return xxx_messageInfo_GetMissionControlConfigRequest.Size(m)
+}
+func (m *GetMissionControlConfigRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetMissionControlConfigRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetMissionControlConfigRequest proto.InternalMessageInfo
+
+type GetMissionControlConfigResponse struct {
+	//
+	//Mission control's currently active config.
+	Config               *MissionControlConfig `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
+}
+
+func (m *GetMissionControlConfigResponse) Reset()         { *m = GetMissionControlConfigResponse{} }
+func (m *GetMissionControlConfigResponse) String() string { return proto.CompactTextString(m) }
+func (*GetMissionControlConfigResponse) ProtoMessage()    {}
+func (*GetMissionControlConfigResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7a0613f69d37b0a5, []int{13}
+}
+
+func (m *GetMissionControlConfigResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetMissionControlConfigResponse.Unmarshal(m, b)
+}
+func (m *GetMissionControlConfigResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetMissionControlConfigResponse.Marshal(b, m, deterministic)
+}
+func (m *GetMissionControlConfigResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetMissionControlConfigResponse.Merge(m, src)
+}
+func (m *GetMissionControlConfigResponse) XXX_Size() int {
+	return xxx_messageInfo_GetMissionControlConfigResponse.Size(m)
+}
+func (m *GetMissionControlConfigResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetMissionControlConfigResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetMissionControlConfigResponse proto.InternalMessageInfo
+
+func (m *GetMissionControlConfigResponse) GetConfig() *MissionControlConfig {
+	if m != nil {
+		return m.Config
+	}
+	return nil
+}
+
+type SetMissionControlConfigRequest struct {
+	//
+	//The config to set for mission control. Note that all values *must* be set,
+	//because the full config will be applied.
+	Config               *MissionControlConfig `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
+}
+
+func (m *SetMissionControlConfigRequest) Reset()         { *m = SetMissionControlConfigRequest{} }
+func (m *SetMissionControlConfigRequest) String() string { return proto.CompactTextString(m) }
+func (*SetMissionControlConfigRequest) ProtoMessage()    {}
+func (*SetMissionControlConfigRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7a0613f69d37b0a5, []int{14}
+}
+
+func (m *SetMissionControlConfigRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetMissionControlConfigRequest.Unmarshal(m, b)
+}
+func (m *SetMissionControlConfigRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetMissionControlConfigRequest.Marshal(b, m, deterministic)
+}
+func (m *SetMissionControlConfigRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetMissionControlConfigRequest.Merge(m, src)
+}
+func (m *SetMissionControlConfigRequest) XXX_Size() int {
+	return xxx_messageInfo_SetMissionControlConfigRequest.Size(m)
+}
+func (m *SetMissionControlConfigRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetMissionControlConfigRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetMissionControlConfigRequest proto.InternalMessageInfo
+
+func (m *SetMissionControlConfigRequest) GetConfig() *MissionControlConfig {
+	if m != nil {
+		return m.Config
+	}
+	return nil
+}
+
+type SetMissionControlConfigResponse struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetMissionControlConfigResponse) Reset()         { *m = SetMissionControlConfigResponse{} }
+func (m *SetMissionControlConfigResponse) String() string { return proto.CompactTextString(m) }
+func (*SetMissionControlConfigResponse) ProtoMessage()    {}
+func (*SetMissionControlConfigResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7a0613f69d37b0a5, []int{15}
+}
+
+func (m *SetMissionControlConfigResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetMissionControlConfigResponse.Unmarshal(m, b)
+}
+func (m *SetMissionControlConfigResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetMissionControlConfigResponse.Marshal(b, m, deterministic)
+}
+func (m *SetMissionControlConfigResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetMissionControlConfigResponse.Merge(m, src)
+}
+func (m *SetMissionControlConfigResponse) XXX_Size() int {
+	return xxx_messageInfo_SetMissionControlConfigResponse.Size(m)
+}
+func (m *SetMissionControlConfigResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetMissionControlConfigResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetMissionControlConfigResponse proto.InternalMessageInfo
+
+type MissionControlConfig struct {
+	//
+	//The amount of time mission control will take to restore a penalized node
+	//or channel back to 50% success probability, expressed as a unix timestamp
+	//in seconds. Setting this value to a higher value will penalize failures for
+	//longer, making mission control less likely to route through nodes and
+	//channels that we have previously recorded failures for.
+	HalfLifeSeconds uint64 `protobuf:"varint,1,opt,name=half_life_seconds,json=halfLifeSeconds,proto3" json:"half_life_seconds,omitempty"`
+	//
+	//The probability of success mission control should assign to hop in a route
+	//where it has no other information available. Higher values will make mission
+	//control more willing to try hops that we have no information about, lower
+	//values will discourage trying these hops.
+	HopProbability float32 `protobuf:"fixed32,2,opt,name=hop_probability,json=hopProbability,proto3" json:"hop_probability,omitempty"`
+	//
+	//The importance that mission control should place on historical results,
+	//expressed as a value in [0;1]. Setting this value to 1 will ignore all
+	//historical payments and just use the hop probability to assess the
+	//probability of success for each hop. A zero value ignores hop probability
+	//completely and relies entirely on historical results, unless none are
+	//available.
+	Weight float32 `protobuf:"fixed32,3,opt,name=weight,proto3" json:"weight,omitempty"`
+	//
+	//The maximum number of payment results that mission control will store.
+	MaximumPaymentResults uint32 `protobuf:"varint,4,opt,name=maximum_payment_results,json=maximumPaymentResults,proto3" json:"maximum_payment_results,omitempty"`
+	//
+	//The minimum time that must have passed since the previously recorded failure
+	//before we raise the failure amount.
+	MinimumFailureRelaxInterval uint64   `protobuf:"varint,5,opt,name=minimum_failure_relax_interval,json=minimumFailureRelaxInterval,proto3" json:"minimum_failure_relax_interval,omitempty"`
+	XXX_NoUnkeyedLiteral        struct{} `json:"-"`
+	XXX_unrecognized            []byte   `json:"-"`
+	XXX_sizecache               int32    `json:"-"`
+}
+
+func (m *MissionControlConfig) Reset()         { *m = MissionControlConfig{} }
+func (m *MissionControlConfig) String() string { return proto.CompactTextString(m) }
+func (*MissionControlConfig) ProtoMessage()    {}
+func (*MissionControlConfig) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7a0613f69d37b0a5, []int{16}
+}
+
+func (m *MissionControlConfig) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MissionControlConfig.Unmarshal(m, b)
+}
+func (m *MissionControlConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MissionControlConfig.Marshal(b, m, deterministic)
+}
+func (m *MissionControlConfig) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MissionControlConfig.Merge(m, src)
+}
+func (m *MissionControlConfig) XXX_Size() int {
+	return xxx_messageInfo_MissionControlConfig.Size(m)
+}
+func (m *MissionControlConfig) XXX_DiscardUnknown() {
+	xxx_messageInfo_MissionControlConfig.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MissionControlConfig proto.InternalMessageInfo
+
+func (m *MissionControlConfig) GetHalfLifeSeconds() uint64 {
+	if m != nil {
+		return m.HalfLifeSeconds
+	}
+	return 0
+}
+
+func (m *MissionControlConfig) GetHopProbability() float32 {
+	if m != nil {
+		return m.HopProbability
+	}
+	return 0
+}
+
+func (m *MissionControlConfig) GetWeight() float32 {
+	if m != nil {
+		return m.Weight
+	}
+	return 0
+}
+
+func (m *MissionControlConfig) GetMaximumPaymentResults() uint32 {
+	if m != nil {
+		return m.MaximumPaymentResults
+	}
+	return 0
+}
+
+func (m *MissionControlConfig) GetMinimumFailureRelaxInterval() uint64 {
+	if m != nil {
+		return m.MinimumFailureRelaxInterval
+	}
+	return 0
+}
+
 type QueryProbabilityRequest struct {
 	// The source node pubkey of the pair.
 	FromNode []byte `protobuf:"bytes,1,opt,name=from_node,json=fromNode,proto3" json:"from_node,omitempty"`
@@ -1058,7 +1297,7 @@ func (m *QueryProbabilityRequest) Reset()         { *m = QueryProbabilityRequest
 func (m *QueryProbabilityRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryProbabilityRequest) ProtoMessage()    {}
 func (*QueryProbabilityRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{12}
+	return fileDescriptor_7a0613f69d37b0a5, []int{17}
 }
 
 func (m *QueryProbabilityRequest) XXX_Unmarshal(b []byte) error {
@@ -1114,7 +1353,7 @@ func (m *QueryProbabilityResponse) Reset()         { *m = QueryProbabilityRespon
 func (m *QueryProbabilityResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryProbabilityResponse) ProtoMessage()    {}
 func (*QueryProbabilityResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{13}
+	return fileDescriptor_7a0613f69d37b0a5, []int{18}
 }
 
 func (m *QueryProbabilityResponse) XXX_Unmarshal(b []byte) error {
@@ -1177,7 +1416,7 @@ func (m *BuildRouteRequest) Reset()         { *m = BuildRouteRequest{} }
 func (m *BuildRouteRequest) String() string { return proto.CompactTextString(m) }
 func (*BuildRouteRequest) ProtoMessage()    {}
 func (*BuildRouteRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{14}
+	return fileDescriptor_7a0613f69d37b0a5, []int{19}
 }
 
 func (m *BuildRouteRequest) XXX_Unmarshal(b []byte) error {
@@ -1246,7 +1485,7 @@ func (m *BuildRouteResponse) Reset()         { *m = BuildRouteResponse{} }
 func (m *BuildRouteResponse) String() string { return proto.CompactTextString(m) }
 func (*BuildRouteResponse) ProtoMessage()    {}
 func (*BuildRouteResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{15}
+	return fileDescriptor_7a0613f69d37b0a5, []int{20}
 }
 
 func (m *BuildRouteResponse) XXX_Unmarshal(b []byte) error {
@@ -1284,7 +1523,7 @@ func (m *SubscribeHtlcEventsRequest) Reset()         { *m = SubscribeHtlcEventsR
 func (m *SubscribeHtlcEventsRequest) String() string { return proto.CompactTextString(m) }
 func (*SubscribeHtlcEventsRequest) ProtoMessage()    {}
 func (*SubscribeHtlcEventsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{16}
+	return fileDescriptor_7a0613f69d37b0a5, []int{21}
 }
 
 func (m *SubscribeHtlcEventsRequest) XXX_Unmarshal(b []byte) error {
@@ -1351,7 +1590,7 @@ func (m *HtlcEvent) Reset()         { *m = HtlcEvent{} }
 func (m *HtlcEvent) String() string { return proto.CompactTextString(m) }
 func (*HtlcEvent) ProtoMessage()    {}
 func (*HtlcEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{17}
+	return fileDescriptor_7a0613f69d37b0a5, []int{22}
 }
 
 func (m *HtlcEvent) XXX_Unmarshal(b []byte) error {
@@ -1505,7 +1744,7 @@ func (m *HtlcInfo) Reset()         { *m = HtlcInfo{} }
 func (m *HtlcInfo) String() string { return proto.CompactTextString(m) }
 func (*HtlcInfo) ProtoMessage()    {}
 func (*HtlcInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{18}
+	return fileDescriptor_7a0613f69d37b0a5, []int{23}
 }
 
 func (m *HtlcInfo) XXX_Unmarshal(b []byte) error {
@@ -1566,7 +1805,7 @@ func (m *ForwardEvent) Reset()         { *m = ForwardEvent{} }
 func (m *ForwardEvent) String() string { return proto.CompactTextString(m) }
 func (*ForwardEvent) ProtoMessage()    {}
 func (*ForwardEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{19}
+	return fileDescriptor_7a0613f69d37b0a5, []int{24}
 }
 
 func (m *ForwardEvent) XXX_Unmarshal(b []byte) error {
@@ -1604,7 +1843,7 @@ func (m *ForwardFailEvent) Reset()         { *m = ForwardFailEvent{} }
 func (m *ForwardFailEvent) String() string { return proto.CompactTextString(m) }
 func (*ForwardFailEvent) ProtoMessage()    {}
 func (*ForwardFailEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{20}
+	return fileDescriptor_7a0613f69d37b0a5, []int{25}
 }
 
 func (m *ForwardFailEvent) XXX_Unmarshal(b []byte) error {
@@ -1635,7 +1874,7 @@ func (m *SettleEvent) Reset()         { *m = SettleEvent{} }
 func (m *SettleEvent) String() string { return proto.CompactTextString(m) }
 func (*SettleEvent) ProtoMessage()    {}
 func (*SettleEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{21}
+	return fileDescriptor_7a0613f69d37b0a5, []int{26}
 }
 
 func (m *SettleEvent) XXX_Unmarshal(b []byte) error {
@@ -1677,7 +1916,7 @@ func (m *LinkFailEvent) Reset()         { *m = LinkFailEvent{} }
 func (m *LinkFailEvent) String() string { return proto.CompactTextString(m) }
 func (*LinkFailEvent) ProtoMessage()    {}
 func (*LinkFailEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{22}
+	return fileDescriptor_7a0613f69d37b0a5, []int{27}
 }
 
 func (m *LinkFailEvent) XXX_Unmarshal(b []byte) error {
@@ -1744,7 +1983,7 @@ func (m *PaymentStatus) Reset()         { *m = PaymentStatus{} }
 func (m *PaymentStatus) String() string { return proto.CompactTextString(m) }
 func (*PaymentStatus) ProtoMessage()    {}
 func (*PaymentStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{23}
+	return fileDescriptor_7a0613f69d37b0a5, []int{28}
 }
 
 func (m *PaymentStatus) XXX_Unmarshal(b []byte) error {
@@ -1800,7 +2039,7 @@ func (m *CircuitKey) Reset()         { *m = CircuitKey{} }
 func (m *CircuitKey) String() string { return proto.CompactTextString(m) }
 func (*CircuitKey) ProtoMessage()    {}
 func (*CircuitKey) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{24}
+	return fileDescriptor_7a0613f69d37b0a5, []int{29}
 }
 
 func (m *CircuitKey) XXX_Unmarshal(b []byte) error {
@@ -1870,7 +2109,7 @@ func (m *ForwardHtlcInterceptRequest) Reset()         { *m = ForwardHtlcIntercep
 func (m *ForwardHtlcInterceptRequest) String() string { return proto.CompactTextString(m) }
 func (*ForwardHtlcInterceptRequest) ProtoMessage()    {}
 func (*ForwardHtlcInterceptRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{25}
+	return fileDescriptor_7a0613f69d37b0a5, []int{30}
 }
 
 func (m *ForwardHtlcInterceptRequest) XXX_Unmarshal(b []byte) error {
@@ -1978,7 +2217,7 @@ func (m *ForwardHtlcInterceptResponse) Reset()         { *m = ForwardHtlcInterce
 func (m *ForwardHtlcInterceptResponse) String() string { return proto.CompactTextString(m) }
 func (*ForwardHtlcInterceptResponse) ProtoMessage()    {}
 func (*ForwardHtlcInterceptResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7a0613f69d37b0a5, []int{26}
+	return fileDescriptor_7a0613f69d37b0a5, []int{31}
 }
 
 func (m *ForwardHtlcInterceptResponse) XXX_Unmarshal(b []byte) error {
@@ -2038,6 +2277,11 @@ func init() {
 	proto.RegisterType((*QueryMissionControlResponse)(nil), "routerrpc.QueryMissionControlResponse")
 	proto.RegisterType((*PairHistory)(nil), "routerrpc.PairHistory")
 	proto.RegisterType((*PairData)(nil), "routerrpc.PairData")
+	proto.RegisterType((*GetMissionControlConfigRequest)(nil), "routerrpc.GetMissionControlConfigRequest")
+	proto.RegisterType((*GetMissionControlConfigResponse)(nil), "routerrpc.GetMissionControlConfigResponse")
+	proto.RegisterType((*SetMissionControlConfigRequest)(nil), "routerrpc.SetMissionControlConfigRequest")
+	proto.RegisterType((*SetMissionControlConfigResponse)(nil), "routerrpc.SetMissionControlConfigResponse")
+	proto.RegisterType((*MissionControlConfig)(nil), "routerrpc.MissionControlConfig")
 	proto.RegisterType((*QueryProbabilityRequest)(nil), "routerrpc.QueryProbabilityRequest")
 	proto.RegisterType((*QueryProbabilityResponse)(nil), "routerrpc.QueryProbabilityResponse")
 	proto.RegisterType((*BuildRouteRequest)(nil), "routerrpc.BuildRouteRequest")
@@ -2275,6 +2519,13 @@ type RouterClient interface {
 	//It is a development feature.
 	QueryMissionControl(ctx context.Context, in *QueryMissionControlRequest, opts ...grpc.CallOption) (*QueryMissionControlResponse, error)
 	//
+	//GetMissionControlConfig returns mission control's current config.
+	GetMissionControlConfig(ctx context.Context, in *GetMissionControlConfigRequest, opts ...grpc.CallOption) (*GetMissionControlConfigResponse, error)
+	//
+	//SetMissionControlConfig will set mission control's config, if the config
+	//provided is valid.
+	SetMissionControlConfig(ctx context.Context, in *SetMissionControlConfigRequest, opts ...grpc.CallOption) (*SetMissionControlConfigResponse, error)
+	//
 	//QueryProbability returns the current success probability estimate for a
 	//given node pair and amount.
 	QueryProbability(ctx context.Context, in *QueryProbabilityRequest, opts ...grpc.CallOption) (*QueryProbabilityResponse, error)
@@ -2417,6 +2668,24 @@ func (c *routerClient) ResetMissionControl(ctx context.Context, in *ResetMission
 func (c *routerClient) QueryMissionControl(ctx context.Context, in *QueryMissionControlRequest, opts ...grpc.CallOption) (*QueryMissionControlResponse, error) {
 	out := new(QueryMissionControlResponse)
 	err := c.cc.Invoke(ctx, "/routerrpc.Router/QueryMissionControl", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *routerClient) GetMissionControlConfig(ctx context.Context, in *GetMissionControlConfigRequest, opts ...grpc.CallOption) (*GetMissionControlConfigResponse, error) {
+	out := new(GetMissionControlConfigResponse)
+	err := c.cc.Invoke(ctx, "/routerrpc.Router/GetMissionControlConfig", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *routerClient) SetMissionControlConfig(ctx context.Context, in *SetMissionControlConfigRequest, opts ...grpc.CallOption) (*SetMissionControlConfigResponse, error) {
+	out := new(SetMissionControlConfigResponse)
+	err := c.cc.Invoke(ctx, "/routerrpc.Router/SetMissionControlConfig", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2607,6 +2876,13 @@ type RouterServer interface {
 	//It is a development feature.
 	QueryMissionControl(context.Context, *QueryMissionControlRequest) (*QueryMissionControlResponse, error)
 	//
+	//GetMissionControlConfig returns mission control's current config.
+	GetMissionControlConfig(context.Context, *GetMissionControlConfigRequest) (*GetMissionControlConfigResponse, error)
+	//
+	//SetMissionControlConfig will set mission control's config, if the config
+	//provided is valid.
+	SetMissionControlConfig(context.Context, *SetMissionControlConfigRequest) (*SetMissionControlConfigResponse, error)
+	//
 	//QueryProbability returns the current success probability estimate for a
 	//given node pair and amount.
 	QueryProbability(context.Context, *QueryProbabilityRequest) (*QueryProbabilityResponse, error)
@@ -2661,6 +2937,12 @@ func (*UnimplementedRouterServer) ResetMissionControl(ctx context.Context, req *
 }
 func (*UnimplementedRouterServer) QueryMissionControl(ctx context.Context, req *QueryMissionControlRequest) (*QueryMissionControlResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueryMissionControl not implemented")
+}
+func (*UnimplementedRouterServer) GetMissionControlConfig(ctx context.Context, req *GetMissionControlConfigRequest) (*GetMissionControlConfigResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMissionControlConfig not implemented")
+}
+func (*UnimplementedRouterServer) SetMissionControlConfig(ctx context.Context, req *SetMissionControlConfigRequest) (*SetMissionControlConfigResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetMissionControlConfig not implemented")
 }
 func (*UnimplementedRouterServer) QueryProbability(ctx context.Context, req *QueryProbabilityRequest) (*QueryProbabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueryProbability not implemented")
@@ -2817,6 +3099,42 @@ func _Router_QueryMissionControl_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Router_GetMissionControlConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMissionControlConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouterServer).GetMissionControlConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/routerrpc.Router/GetMissionControlConfig",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouterServer).GetMissionControlConfig(ctx, req.(*GetMissionControlConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Router_SetMissionControlConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetMissionControlConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouterServer).SetMissionControlConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/routerrpc.Router/SetMissionControlConfig",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouterServer).SetMissionControlConfig(ctx, req.(*SetMissionControlConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Router_QueryProbability_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(QueryProbabilityRequest)
 	if err := dec(in); err != nil {
@@ -2965,6 +3283,14 @@ var _Router_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "QueryMissionControl",
 			Handler:    _Router_QueryMissionControl_Handler,
+		},
+		{
+			MethodName: "GetMissionControlConfig",
+			Handler:    _Router_GetMissionControlConfig_Handler,
+		},
+		{
+			MethodName: "SetMissionControlConfig",
+			Handler:    _Router_SetMissionControlConfig_Handler,
 		},
 		{
 			MethodName: "QueryProbability",
