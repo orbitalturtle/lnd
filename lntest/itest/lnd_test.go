@@ -11987,11 +11987,7 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Wait until all outstanding htlcs in the network have been settled.
 	err = wait.Predicate(func() bool {
-		predErr = assertNumActiveHtlcs(nodes, 0)
-		if predErr != nil {
-			return false
-		}
-		return true
+		return assertNumActiveHtlcs(nodes, 0) == nil
 	}, defaultTimeout)
 	if err != nil {
 		t.Fatalf("htlc mismatch: %v", predErr)
@@ -12315,11 +12311,7 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	// After reconnection succeeds, the settles should be propagated all
 	// the way back to the sender. All nodes should report no active htlcs.
 	err = wait.Predicate(func() bool {
-		predErr = assertNumActiveHtlcs(nodes, 0)
-		if predErr != nil {
-			return false
-		}
-		return true
+		return assertNumActiveHtlcs(nodes, 0) == nil
 	}, defaultTimeout)
 	if err != nil {
 		t.Fatalf("htlc mismatch: %v", predErr)
@@ -12582,11 +12574,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 	// Wait for all payments to reach Carol.
 	var predErr error
 	err = wait.Predicate(func() bool {
-		predErr = assertNumActiveHtlcs(nodes, numPayments)
-		if predErr != nil {
-			return false
-		}
-		return true
+		return assertNumActiveHtlcs(nodes, numPayments) == nil
 	}, defaultTimeout)
 	if err != nil {
 		t.Fatalf("htlc mismatch: %v", predErr)
