@@ -6471,6 +6471,8 @@ func (r *rpcServer) ChannelAcceptor(stream lnrpc.Lightning_ChannelAcceptorServer
 
 // BakeMacaroon allows the creation of a new macaroon with custom read and write
 // permissions. No first-party caveats are added since this can be done offline.
+// If the --allow-external-permissions flag is set, the RPC will allow 
+// external permissions that LND is not aware of. 
 func (r *rpcServer) BakeMacaroon(ctx context.Context,
 	req *lnrpc.BakeMacaroonRequest) (*lnrpc.BakeMacaroonResponse, error) {
 
@@ -6493,29 +6495,32 @@ func (r *rpcServer) BakeMacaroon(ctx context.Context,
 	}
 
 	// Validate and map permission struct used by gRPC to the one used by
-	// the bakery.
+	// the bakery. If the --allow-external-permissions flag is set, we 
+	// will not validate, but map.
 	requestedPermissions := make([]bakery.Op, len(req.Permissions))
 	for idx, op := range req.Permissions {
-		if !stringInSlice(op.Entity, validEntities) {
-			return nil, fmt.Errorf("invalid permission entity. %s",
-				helpMsg)
-		}
-
-		// Either we have the special entity "uri" which specifies a
-		// full gRPC URI or we have one of the pre-defined actions.
-		if op.Entity == macaroons.PermissionEntityCustomURI {
-			allPermissions := r.interceptorChain.Permissions()
-			_, ok := allPermissions[op.Action]
-			if !ok {
-				return nil, fmt.Errorf("invalid permission " +
-					"action, must be an existing URI in " +
-					"the format /package.Service/" +
-					"MethodName")
+		if !req.allow_external_permissions {
+			if !stringInSlice(op.Entity, validEntities) {
+				return nil, fmt.Errorf("invalid permission entity. %s",
+					helpMsg)
 			}
-		} else if !stringInSlice(op.Action, validActions) {
-			return nil, fmt.Errorf("invalid permission action. %s",
-				helpMsg)
 
+			// Either we have the special entity "uri" which specifies a
+			// full gRPC URI or we have one of the pre-defined actions.
+			if op.Entity == macaroons.PermissionEntityCustomURI {
+				allPermissions := r.interceptorChain.Permissions()
+				_, ok := allPermissions[op.Action]
+				if !ok {
+					return nil, fmt.Errorf("invalid permission " +
+						"action, must be an existing URI in " +
+						"the format /package.Service/" +
+						"MethodName")
+				}
+			} else if !stringInSlice(op.Action, validActions) {
+				return nil, fmt.Errorf("invalid permission action. %s",
+					helpMsg)
+
+			}
 		}
 
 		requestedPermissions[idx] = bakery.Op{
@@ -6637,6 +6642,13 @@ func (r *rpcServer) ListPermissions(_ context.Context,
 		MethodPermissions: permissionMap,
 	}, nil
 }
+
+// CheckMacaroonPermissions
+// func (r *rpcServer) CheckMacaroonPermissions(ctx context.Context,
+//         _ *lnrpc.CheckMacPermissionsRequest) (*lnrpc.CheckMacPermissionsResponse, error) {
+// 	
+// 	
+// }
 
 // FundingStateStep is an advanced funding related call that allows the caller
 // to either execute some preparatory steps for a funding workflow, or manually
