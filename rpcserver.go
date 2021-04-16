@@ -6543,7 +6543,7 @@ func (r *rpcServer) BakeMacaroon(ctx context.Context,
 	// will not validate, but map.
 	requestedPermissions := make([]bakery.Op, len(req.Permissions))
 	for idx, op := range req.Permissions {
-		if !req.allow_external_permissions {
+		if !req.AllowExternalPermissions {
 			if !stringInSlice(op.Entity, validEntities) {
 				return nil, fmt.Errorf("invalid permission entity. %s",
 					helpMsg)
