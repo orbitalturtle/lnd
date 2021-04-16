@@ -196,6 +196,29 @@ func testMacaroonAuthentication(net *lntest.NetworkHarness, ht *harnessTest) {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "permission denied")
 		},
+	}, {
+		// Seventh test: check that if the allow_external_permissions
+		// flag is set, we are able to feed BakeMacaroons permissions
+		// that LND is not familiar with.
+		name: "allow external macaroon permissions",
+		run: func(ctxt context.Context, t *testing.T,
+                        adminClient lnrpc.LightningClient) {
+
+			// We'll try a permission from Pool to test if the flag
+			// allows it.
+                        rootKeyID := uint64(4200)
+                        req := &lnrpc.BakeMacaroonRequest{
+                                 RootKeyId: rootKeyID,
+                                 Permissions: []*lnrpc.MacaroonPermission{{
+                                         Entity: "account",
+                                         Action: "read",
+                                 }},
+				 AllowExternalPermissions: true,
+                        }
+
+			_, err := adminClient.BakeMacaroon(ctxt, req)
+                        require.NoError(t, err)
+		},
 	}}
 
 	for _, tc := range testCases {
