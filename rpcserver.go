@@ -6689,15 +6689,28 @@ func (r *rpcServer) ListPermissions(_ context.Context,
 
 // CheckMacaroonPermissions... 
 func (r *rpcServer) CheckMacaroonPermissions(ctx context.Context,
-        req *lnrpc.CheckMacPermRequest) (*lnrpc.CheckMacPermsResponse, error) {
+        req *lnrpc.CheckMacPermRequest) (*lnrpc.CheckMacPermResponse, error) {
 
-	err := r.macService.CheckMacAuth(ctx, req.macaroon, req.permissions)
+	// Turn grpc macaroon permission into bakery.Op
+	permissions := make([]bakery.Op, 0)
+	for _, perm := range req.Permissions {
+		newPerm := bakery.Op{
+			Entity: perm.Entity,
+			Action: perm.Action,
+		}
+
+		permissions = append(permissions, newPerm)
+	}
+
+	// LAST PARAM HERE: SHOULD WE BE SENDING FULLMETHOD IN SOMEHOW???
+	err := r.macService.CheckMacAuth(ctx, req.Macaroon, permissions, "")
 	if err != nil {
 		return nil, err
 	}
 
-	return &lnrpc.CheckMacPermsResponse{
-		valid: true,
+	// NEED TO ADD LOGIC HERE FOR WHETHER IT IS VALID OR NOT
+	return &lnrpc.CheckMacPermResponse{
+		Valid: true,
 	}, nil
 }
 
