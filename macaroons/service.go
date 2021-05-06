@@ -185,23 +185,25 @@ func (svc *Service) ValidateMacaroon(ctx context.Context,
 			len(md["macaroon"]))
 	}
 
-	// With the macaroon obtained, we'll now decode the hex-string
-	// encoding, then unmarshal it from binary into its concrete struct
-	// representation.
-	macBytes, err := hex.DecodeString(md["macaroon"][0])
-	if err != nil {
-		return err
-	}
-	mac := &macaroon.Macaroon{}
-	err = mac.UnmarshalBinary(macBytes)
-	if err != nil {
-		return err
-	}
+//	// With the macaroon obtained, we'll now decode the hex-string
+//	// encoding, then unmarshal it from binary into its concrete struct
+//	// representation.
+//	macBytes, err := hex.DecodeString(md["macaroon"][0])
+//	if err != nil {
+//		return err
+//	}
+//	mac := &macaroon.Macaroon{}
+//	err = mac.UnmarshalBinary(macBytes)
+//	if err != nil {
+//		return err
+//	}
+//
+//	// Check the method being called against the permitted operation, the
+//	// expiration time and IP address and return the result.
+//	authChecker := svc.Checker.Auth(macaroon.Slice{mac})
+//	_, err = authChecker.Allow(ctx, requiredPermissions...)
 
-	// Check the method being called against the permitted operation, the
-	// expiration time and IP address and return the result.
-	authChecker := svc.Checker.Auth(macaroon.Slice{mac})
-	_, err = authChecker.Allow(ctx, requiredPermissions...)
+	err := svc.CheckMacAuth(ctx, md["macaroon"][0], requiredPermissions)
 
 	// If the macaroon contains broad permissions and checks out, we're
 	// done.
@@ -216,6 +218,31 @@ func (svc *Service) ValidateMacaroon(ctx context.Context,
 		Entity: PermissionEntityCustomURI,
 		Action: fullMethod,
 	})
+	return err
+}
+
+// CheckMacAuth will check that...
+func (svc *Service) CheckMacAuth(ctx ctx.Context, macStr string,
+	requiredPermissions []bakery.Op) error {
+
+        // With the macaroon obtained, we'll now decode the hex-string
+        // encoding, then unmarshal it from binary into its concrete struct
+        // representation.
+        macBytes, err := hex.DecodeString(macStr)
+        if err != nil {
+                return err
+	}
+        mac := &macaroon.Macaroon{}
+        err = mac.UnmarshalBinary(macBytes)
+        if err != nil {
+		return err
+	}
+
+        // Check the method being called against the permitted operation, the
+        // expiration time and IP address and return the result.
+        authChecker := svc.Checker.Auth(macaroon.Slice{mac})
+        _, err = authChecker.Allow(ctx, requiredPermissions...)
+
 	return err
 }
 
