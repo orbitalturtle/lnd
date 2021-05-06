@@ -6643,12 +6643,19 @@ func (r *rpcServer) ListPermissions(_ context.Context,
 	}, nil
 }
 
-// CheckMacaroonPermissions
-// func (r *rpcServer) CheckMacaroonPermissions(ctx context.Context,
-//         _ *lnrpc.CheckMacPermissionsRequest) (*lnrpc.CheckMacPermissionsResponse, error) {
-// 	
-// 	
-// }
+// CheckMacaroonPermissions... 
+func (r *rpcServer) CheckMacaroonPermissions(ctx context.Context,
+        req *lnrpc.CheckMacPermRequest) (*lnrpc.CheckMacPermsResponse, error) {
+
+	err := r.macService.CheckMacAuth(ctx, req.macaroon, req.permissions)
+	if err != nil {
+		return nil, err
+	}
+
+	return &lnrpc.CheckMacPermsResponse{
+		valid: true,
+	}, nil
+}
 
 // FundingStateStep is an advanced funding related call that allows the caller
 // to either execute some preparatory steps for a funding workflow, or manually
