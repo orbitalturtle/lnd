@@ -964,7 +964,7 @@ func allowCORS(handler http.Handler, origins []string) http.Handler {
 // more addresses specified in the passed payment map. The payment map maps an
 // address to a specified output value to be sent to that address.
 func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
-	feeRate chainfee.SatPerKWeight, minconf int32,
+	feeRate chainfee.SatPerKWeight, minConfs int32,
 	label string) (*chainhash.Hash, error) {
 
 	outputs, err := addrPairsToOutputs(paymentMap, r.cfg.ActiveNetParams.Params)
@@ -975,7 +975,7 @@ func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
 	// We first do a dry run, to sanity check we won't spend our wallet
 	// balance below the reserved amount.
 	authoredTx, err := r.server.cc.Wallet.CreateSimpleTx(
-		outputs, feeRate, true,
+		outputs, feeRate, minConfs, true,
 	)
 	if err != nil {
 		return nil, err
@@ -989,7 +989,7 @@ func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
 	// If that checks out, we're failry confident that creating sending to
 	// these outputs will keep the wallet balance above the reserve.
 	tx, err := r.server.cc.Wallet.SendOutputs(
-		outputs, feeRate, minconf, label,
+		outputs, feeRate, minConfs, label,
 	)
 	if err != nil {
 		return nil, err
@@ -1073,12 +1073,21 @@ func (r *rpcServer) EstimateFee(ctx context.Context,
 		return nil, err
 	}
 
+	// Then, we'll extract the minimum number of confirmations that each
+	// output we use to fund the transaction should satisfy.
+	minConfs, err := lnrpc.ExtractMinConfs(
+		in.GetMinConfs(), in.GetSpendUnconfirmed(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	// We will ask the wallet to create a tx using this fee rate. We set
 	// dryRun=true to avoid inflating the change addresses in the db.
 	var tx *txauthor.AuthoredTx
 	wallet := r.server.cc.Wallet
 	err = wallet.WithCoinSelectLock(func() error {
-		tx, err = wallet.CreateSimpleTx(outputs, feePerKw, true)
+		tx, err = wallet.CreateSimpleTx(outputs, feePerKw, minConfs, true)
 		return err
 	})
 	if err != nil {
@@ -2344,7 +2353,7 @@ func abandonChanFromGraph(chanGraph *channeldb.ChannelGraph,
 
 	// If the channel ID is still in the graph, then that means the channel
 	// is still open, so we'll now move to purge it from the graph.
-	return chanGraph.DeleteChannelEdges(chanID)
+	return chanGraph.DeleteChannelEdges(false, chanID)
 }
 
 // AbandonChannel removes all channel state from the database except for a
@@ -2756,6 +2765,10 @@ func (r *rpcServer) SubscribePeerEvents(req *lnrpc.PeerEventSubscription,
 			if err := eventStream.Send(event); err != nil {
 				return err
 			}
+
+		case <-eventStream.Context().Done():
+			return eventStream.Context().Err()
+
 		case <-r.quit:
 			return nil
 		}
@@ -4029,6 +4042,10 @@ func (r *rpcServer) SubscribeChannelEvents(req *lnrpc.ChannelEventSubscription,
 			if err := updateStream.Send(update); err != nil {
 				return err
 			}
+
+		case <-updateStream.Context().Done():
+			return updateStream.Context().Err()
+
 		case <-r.quit:
 			return nil
 		}
@@ -4402,7 +4419,6 @@ func (r *rpcServer) dispatchPaymentIntent(
 			FinalCLTVDelta:     payIntent.cltvDelta,
 			FeeLimit:           payIntent.feeLimit,
 			CltvLimit:          payIntent.cltvLimit,
-			PaymentHash:        payIntent.rHash,
 			RouteHints:         payIntent.routeHints,
 			OutgoingChannelIDs: payIntent.outgoingChannelIDs,
 			LastHop:            payIntent.lastHop,
@@ -4415,6 +4431,10 @@ func (r *rpcServer) dispatchPaymentIntent(
 			// Don't enable multi-part payments on the main rpc.
 			// Users need to use routerrpc for that.
 			MaxParts: 1,
+		}
+		err := payment.SetPaymentHash(payIntent.rHash)
+		if err != nil {
+			return nil, err
 		}
 
 		preImage, route, routerErr = r.server.chanRouter.SendPayment(
@@ -4946,6 +4966,9 @@ func (r *rpcServer) SubscribeInvoices(req *lnrpc.InvoiceSubscription,
 				return err
 			}
 
+		case <-updateStream.Context().Done():
+			return updateStream.Context().Err()
+
 		case <-r.quit:
 			return nil
 		}
@@ -5002,6 +5025,9 @@ func (r *rpcServer) SubscribeTransactions(req *lnrpc.GetTransactionsRequest,
 			if err := updateStream.Send(detail); err != nil {
 				return err
 			}
+
+		case <-updateStream.Context().Done():
+			return updateStream.Context().Err()
 
 		case <-r.quit:
 			return nil
@@ -5524,6 +5550,11 @@ func (r *rpcServer) SubscribeChannelGraph(req *lnrpc.GraphTopologySubscription,
 				return err
 			}
 
+		// The context was cancelled so we report a cancellation error
+		// and exit immediately.
+		case <-updateStream.Context().Done():
+			return updateStream.Context().Err()
+
 		// The server is quitting, so we'll exit immediately. Returning
 		// nil will close the clients read end of the stream.
 		case <-r.quit:
@@ -5546,16 +5577,26 @@ func marshallTopologyChange(topChange *routing.TopologyChange) *lnrpc.GraphTopol
 
 	nodeUpdates := make([]*lnrpc.NodeUpdate, len(topChange.NodeUpdates))
 	for i, nodeUpdate := range topChange.NodeUpdates {
+		nodeAddrs := make([]*lnrpc.NodeAddress, 0, len(nodeUpdate.Addresses))
+		for _, addr := range nodeUpdate.Addresses {
+			nodeAddr := &lnrpc.NodeAddress{
+				Network: addr.Network(),
+				Addr:    addr.String(),
+			}
+			nodeAddrs = append(nodeAddrs, nodeAddr)
+		}
+
 		addrs := make([]string, len(nodeUpdate.Addresses))
 		for i, addr := range nodeUpdate.Addresses {
 			addrs[i] = addr.String()
 		}
 
 		nodeUpdates[i] = &lnrpc.NodeUpdate{
-			Addresses:   addrs,
-			IdentityKey: encodeKey(nodeUpdate.IdentityKey),
-			Alias:       nodeUpdate.Alias,
-			Color:       nodeUpdate.Color,
+			Addresses:     addrs,
+			NodeAddresses: nodeAddrs,
+			IdentityKey:   encodeKey(nodeUpdate.IdentityKey),
+			Alias:         nodeUpdate.Alias,
+			Color:         nodeUpdate.Color,
 			Features: invoicesrpc.CreateRPCFeatures(
 				nodeUpdate.Features,
 			),
@@ -6436,6 +6477,9 @@ func (r *rpcServer) SubscribeChannelBackups(req *lnrpc.ChannelBackupSubscription
 				return err
 			}
 
+		case <-updateStream.Context().Done():
+			return updateStream.Context().Err()
+
 		case <-r.quit:
 			return nil
 		}
@@ -6499,7 +6543,7 @@ func (r *rpcServer) BakeMacaroon(ctx context.Context,
 	// will not validate, but map.
 	requestedPermissions := make([]bakery.Op, len(req.Permissions))
 	for idx, op := range req.Permissions {
-		if !req.allow_external_permissions {
+		if !req.AllowExternalPermissions {
 			if !stringInSlice(op.Entity, validEntities) {
 				return nil, fmt.Errorf("invalid permission entity. %s",
 					helpMsg)

@@ -907,6 +907,13 @@ message EstimateFeeRequest {
     // The target number of blocks that this transaction should be confirmed
     // by.
     int32 target_conf = 2;
+
+    // The minimum number of confirmations each one of your outputs used for
+    // the transaction must satisfy.
+    int32 min_confs = 3;
+
+    // Whether unconfirmed outputs should be used as inputs for the transaction.
+    bool spend_unconfirmed = 4;
 }
 
 message EstimateFeeResponse {
@@ -2776,11 +2783,21 @@ message GraphTopologyUpdate {
     repeated ClosedChannelUpdate closed_chans = 3;
 }
 message NodeUpdate {
-    repeated string addresses = 1;
+    /*
+    Deprecated, use node_addresses.
+    */
+    repeated string addresses = 1 [deprecated = true];
+
     string identity_key = 2;
+
+    /*
+    Deprecated, use features.
+    */
     bytes global_features = 3 [deprecated = true];
+
     string alias = 4;
     string color = 5;
+    repeated NodeAddress node_addresses = 7;
 
     /*
     Features that the node has advertised in the init message, node
@@ -3406,6 +3423,8 @@ enum FeatureBit {
     ANCHORS_OPT = 21;
     ANCHORS_ZERO_FEE_HTLC_REQ = 22;
     ANCHORS_ZERO_FEE_HTLC_OPT = 23;
+    AMP_REQ = 30;
+    AMP_OPT = 31;
 }
 
 message Feature {
@@ -3651,7 +3670,7 @@ message BakeMacaroonRequest {
     // The root key ID used to create the macaroon, must be a positive integer.
     uint64 root_key_id = 2;
 
-    /* 
+    /*
     Informs the RPC on whether to allow external permissions that LND is not
     aware of.
     */

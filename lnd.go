@@ -34,6 +34,7 @@ import (
 	"gopkg.in/macaroon.v2"
 
 	"github.com/lightningnetwork/lnd/autopilot"
+	"github.com/lightningnetwork/lnd/blockcache"
 	"github.com/lightningnetwork/lnd/build"
 	"github.com/lightningnetwork/lnd/cert"
 	"github.com/lightningnetwork/lnd/chainreg"
@@ -254,6 +255,9 @@ func Main(cfg *Config, lisCfg ListenerCfg, interceptor signal.Interceptor) error
 
 	defer cleanUp()
 
+	// Initialize a new block cache.
+	blockCache := blockcache.NewBlockCache(cfg.BlockCacheSize)
+
 	// Before starting the wallet, we'll create and start our Neutrino
 	// light client instance, if enabled, in order to allow it to sync
 	// while the rest of the daemon continues startup.
@@ -264,7 +268,7 @@ func Main(cfg *Config, lisCfg ListenerCfg, interceptor signal.Interceptor) error
 	var neutrinoCS *neutrino.ChainService
 	if mainChain.Node == "neutrino" {
 		neutrinoBackend, neutrinoCleanUp, err := initNeutrinoBackend(
-			cfg, mainChain.ChainDir,
+			cfg, mainChain.ChainDir, blockCache,
 		)
 		if err != nil {
 			err := fmt.Errorf("unable to initialize neutrino "+
@@ -546,9 +550,15 @@ func Main(cfg *Config, lisCfg ListenerCfg, interceptor signal.Interceptor) error
 		Dialer: func(addr string) (net.Conn, error) {
 			return cfg.net.Dial("tcp", addr, cfg.ConnectionTimeout)
 		},
+		BlockCacheSize: cfg.BlockCacheSize,
 	}
 
-	activeChainControl, err := chainreg.NewChainControl(chainControlCfg)
+	activeChainControl, cleanup, err := chainreg.NewChainControl(
+		chainControlCfg, blockCache,
+	)
+	if cleanup != nil {
+		defer cleanup()
+	}
 	if err != nil {
 		err := fmt.Errorf("unable to create chain control: %v", err)
 		ltndLog.Error(err)
@@ -1550,8 +1560,20 @@ func initializeDatabases(ctx context.Context,
 
 // initNeutrinoBackend inits a new instance of the neutrino light client
 // backend given a target chain directory to store the chain state.
-func initNeutrinoBackend(cfg *Config, chainDir string) (*neutrino.ChainService,
+func initNeutrinoBackend(cfg *Config, chainDir string,
+	blockCache *blockcache.BlockCache) (*neutrino.ChainService,
 	func(), error) {
+
+	// Both channel validation flags are false by default but their meaning
+	// is the inverse of each other. Therefore both cannot be true. For
+	// every other case, the neutrino.validatechannels overwrites the
+	// routing.assumechanvalid value.
+	if cfg.NeutrinoMode.ValidateChannels && cfg.Routing.AssumeChannelValid {
+		return nil, nil, fmt.Errorf("can't set both " +
+			"neutrino.validatechannels and routing." +
+			"assumechanvalid to true at the same time")
+	}
+	cfg.Routing.AssumeChannelValid = !cfg.NeutrinoMode.ValidateChannels
 
 	// First we'll open the database file for neutrino, creating the
 	// database if needed. We append the normalized network name here to
@@ -1647,6 +1669,7 @@ func initNeutrinoBackend(cfg *Config, chainDir string) (*neutrino.ChainService,
 			return ips, nil
 		},
 		AssertFilterHeader: headerStateAssertion,
+		BlockCache:         blockCache.Cache,
 	}
 
 	neutrino.MaxPeers = 8

@@ -362,6 +362,11 @@ func (c ContractState) String() string {
 	return "Unknown"
 }
 
+// IsFinal returns a boolean indicating whether an invoice state is final
+func (c ContractState) IsFinal() bool {
+	return c == ContractSettled || c == ContractCanceled
+}
+
 // ContractTerm is a companion struct to the Invoice struct. This struct houses
 // the necessary conditions required before the invoice can be considered fully
 // settled by the payee.
@@ -991,7 +996,14 @@ func fetchInvoiceNumByRef(invoiceIndex, payAddrIndex, setIDIndex kvdb.RBucket,
 		return invoiceNumByAddr, nil
 
 	// Return invoices by payment addr only.
-	case invoiceNumByAddr != nil:
+	//
+	// NOTE: We constrain this lookup to only apply if the invoice ref does
+	// not contain a payment hash. Legacy and MPP payments depend on the
+	// payment hash index to enforce that the HTLCs payment hash matches the
+	// payment hash for the invoice, without this check we would
+	// inadvertently assume the invoice contains the correct preimage for
+	// the HTLC, which we only enforce via the lookup by the invoice index.
+	case invoiceNumByAddr != nil && payHash == nil:
 		return invoiceNumByAddr, nil
 
 	// If we were only able to reference the invoice by hash, return the

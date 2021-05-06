@@ -231,6 +231,10 @@ var allTestCases = []*testCase{
 		test: testHoldInvoicePersistence,
 	},
 	{
+		name: "hold invoice force close",
+		test: testHoldInvoiceForceClose,
+	},
+	{
 		name: "cpfp",
 		test: testCPFP,
 	},
@@ -270,6 +274,11 @@ var allTestCases = []*testCase{
 		name: "sendtoroute amp",
 		test: testSendToRouteAMP,
 	},
+	{
+		name: "sendpayment amp",
+		test: testSendPaymentAMP,
+	},
+
 	{
 		name: "send multi path payment",
 		test: testSendMultiPathPayment,

@@ -9,7 +9,7 @@ require (
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/btcsuite/btcutil/psbt v1.0.3-0.20201208143702-a53e38424cce
-	github.com/btcsuite/btcwallet v0.11.1-0.20210405201449-683061f79797
+	github.com/btcsuite/btcwallet v0.11.1-0.20210421021904-50978fcf79f8
 	github.com/btcsuite/btcwallet/wallet/txauthor v1.0.1-0.20210329233242-e0607006dce6
 	github.com/btcsuite/btcwallet/wallet/txrules v1.0.0
 	github.com/btcsuite/btcwallet/wallet/txsizes v1.0.1-0.20210329233242-e0607006dce6 // indirect
@@ -89,4 +89,4 @@ replace github.com/lightningnetwork/lnd/clock => ./clock
 
 replace git.schwanenlied.me/yawning/bsaes.git => github.com/Yawning/bsaes v0.0.0-20180720073208-c0276d75487e
 
-go 1.13
+go 1.15

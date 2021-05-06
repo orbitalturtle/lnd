@@ -1193,7 +1193,9 @@
                 "ANCHORS_REQ",
                 "ANCHORS_OPT",
                 "ANCHORS_ZERO_FEE_HTLC_REQ",
-                "ANCHORS_ZERO_FEE_HTLC_OPT"
+                "ANCHORS_ZERO_FEE_HTLC_OPT",
+                "AMP_REQ",
+                "AMP_OPT"
               ]
             },
             "collectionFormat": "multi"
@@ -2034,6 +2036,22 @@
             "required": false,
             "type": "integer",
             "format": "int32"
+          },
+          {
+            "name": "min_confs",
+            "description": "The minimum number of confirmations each one of your outputs used for\nthe transaction must satisfy.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "spend_unconfirmed",
+            "description": "Whether unconfirmed outputs should be used as inputs for the transaction.",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "format": "boolean"
           }
         ],
         "tags": [
@@ -2620,6 +2638,11 @@
           "type": "string",
           "format": "uint64",
           "description": "The root key ID used to create the macaroon, must be a positive integer."
+        },
+        "allow_external_permissions": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Informs the RPC on whether to allow external permissions that LND is not\naware of."
         }
       }
     },
@@ -3543,7 +3566,9 @@
         "ANCHORS_REQ",
         "ANCHORS_OPT",
         "ANCHORS_ZERO_FEE_HTLC_REQ",
-        "ANCHORS_ZERO_FEE_HTLC_OPT"
+        "ANCHORS_ZERO_FEE_HTLC_OPT",
+        "AMP_REQ",
+        "AMP_OPT"
       ],
       "default": "DATALOSS_PROTECT_REQ"
     },
@@ -4675,20 +4700,28 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "Deprecated, use node_addresses."
         },
         "identity_key": {
           "type": "string"
         },
         "global_features": {
           "type": "string",
-          "format": "byte"
+          "format": "byte",
+          "description": "Deprecated, use features."
         },
         "alias": {
           "type": "string"
         },
         "color": {
           "type": "string"
+        },
+        "node_addresses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/lnrpcNodeAddress"
+          }
         },
         "features": {
           "type": "object",

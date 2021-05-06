@@ -100,19 +100,21 @@ func makeTestDB() (*channeldb.DB, func(), error) {
 type mockGraphSource struct {
 	bestHeight uint32
 
-	mu      sync.Mutex
-	nodes   []channeldb.LightningNode
-	infos   map[uint64]channeldb.ChannelEdgeInfo
-	edges   map[uint64][]channeldb.ChannelEdgePolicy
-	zombies map[uint64][][33]byte
+	mu            sync.Mutex
+	nodes         []channeldb.LightningNode
+	infos         map[uint64]channeldb.ChannelEdgeInfo
+	edges         map[uint64][]channeldb.ChannelEdgePolicy
+	zombies       map[uint64][][33]byte
+	chansToReject map[uint64]struct{}
 }
 
 func newMockRouter(height uint32) *mockGraphSource {
 	return &mockGraphSource{
-		bestHeight: height,
-		infos:      make(map[uint64]channeldb.ChannelEdgeInfo),
-		edges:      make(map[uint64][]channeldb.ChannelEdgePolicy),
-		zombies:    make(map[uint64][][33]byte),
+		bestHeight:    height,
+		infos:         make(map[uint64]channeldb.ChannelEdgeInfo),
+		edges:         make(map[uint64][]channeldb.ChannelEdgePolicy),
+		zombies:       make(map[uint64][][33]byte),
+		chansToReject: make(map[uint64]struct{}),
 	}
 }
 
@@ -138,8 +140,19 @@ func (r *mockGraphSource) AddEdge(info *channeldb.ChannelEdgeInfo,
 		return errors.New("info already exist")
 	}
 
+	if _, ok := r.chansToReject[info.ChannelID]; ok {
+		return errors.New("validation failed")
+	}
+
 	r.infos[info.ChannelID] = *info
 	return nil
+}
+
+func (r *mockGraphSource) queueValidationFail(chanID uint64) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.chansToReject[chanID] = struct{}{}
 }
 
 func (r *mockGraphSource) UpdateEdge(edge *channeldb.ChannelEdgePolicy,
@@ -384,7 +397,9 @@ func (r *mockGraphSource) MarkEdgeZombie(chanID lnwire.ShortChannelID, pubKey1,
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	r.zombies[chanID.ToUint64()] = [][33]byte{pubKey1, pubKey2}
+
 	return nil
 }
 
@@ -2304,13 +2319,32 @@ func TestProcessZombieEdgeNowLive(t *testing.T) {
 		t.Fatalf("unable to sign update with new timestamp: %v", err)
 	}
 
-	// We'll also add the edge to our zombie index.
+	// We'll also add the edge to our zombie index, provide a blank pubkey
+	// for the first node as we're simulating the sitaution where the first
+	// ndoe is updating but the second node isn't. In this case we only
+	// want to allow a new update from the second node to allow the entire
+	// edge to be resurrected.
 	chanID := batch.chanAnn.ShortChannelID
 	err = ctx.router.MarkEdgeZombie(
-		chanID, batch.chanAnn.NodeID1, batch.chanAnn.NodeID2,
+		chanID, [33]byte{}, batch.chanAnn.NodeID2,
 	)
 	if err != nil {
 		t.Fatalf("unable mark channel %v as zombie: %v", chanID, err)
+	}
+
+	// If we send a new update but for the other direction of the channel,
+	// then it should still be rejected as we want a fresh update from the
+	// one that was considered stale.
+	batch.chanUpdAnn1.Timestamp = uint32(time.Now().Unix())
+	if err := signUpdate(remoteKeyPriv1, batch.chanUpdAnn1); err != nil {
+		t.Fatalf("unable to sign update with new timestamp: %v", err)
+	}
+	processAnnouncement(batch.chanUpdAnn1, true, true)
+
+	// At this point, the channel should still be consiered a zombie.
+	_, _, _, err = ctx.router.GetChannelByID(chanID)
+	if err != channeldb.ErrZombieEdge {
+		t.Fatalf("channel should still be a zombie")
 	}
 
 	// Attempting to process the current channel update should fail due to
@@ -4175,5 +4209,58 @@ func TestIgnoreOwnAnnouncement(t *testing.T) {
 	}
 	if err == nil || !strings.Contains(err.Error(), "ignoring") {
 		t.Fatalf("expected gossiper to ignore announcement, got: %v", err)
+	}
+}
+
+// TestRejectCacheChannelAnn checks that if we reject a channel announcement,
+// then if we attempt to validate it again, we'll reject it with the proper
+// error.
+func TestRejectCacheChannelAnn(t *testing.T) {
+	t.Parallel()
+
+	ctx, cleanup, err := createTestCtx(proofMatureDelta)
+	if err != nil {
+		t.Fatalf("can't create context: %v", err)
+	}
+	defer cleanup()
+
+	// First, we create a channel announcement to send over to our test
+	// peer.
+	batch, err := createRemoteAnnouncements(0)
+	if err != nil {
+		t.Fatalf("can't generate announcements: %v", err)
+	}
+
+	remoteKey, err := btcec.ParsePubKey(batch.nodeAnn2.NodeID[:], btcec.S256())
+	if err != nil {
+		t.Fatalf("unable to parse pubkey: %v", err)
+	}
+	remotePeer := &mockPeer{remoteKey, nil, nil}
+
+	// Before sending over the announcement, we'll modify it such that we
+	// know it will always fail.
+	chanID := batch.chanAnn.ShortChannelID.ToUint64()
+	ctx.router.queueValidationFail(chanID)
+
+	// If we process the batch the first time we should get an error.
+	select {
+	case err = <-ctx.gossiper.ProcessRemoteAnnouncement(
+		batch.chanAnn, remotePeer,
+	):
+		require.NotNil(t, err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("did not process remote announcement")
+	}
+
+	// If we process it a *second* time, then we should get an error saying
+	// we rejected it already.
+	select {
+	case err = <-ctx.gossiper.ProcessRemoteAnnouncement(
+		batch.chanAnn, remotePeer,
+	):
+		errStr := err.Error()
+		require.Contains(t, errStr, "recently rejected")
+	case <-time.After(2 * time.Second):
+		t.Fatal("did not process remote announcement")
 	}
 }
