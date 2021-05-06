@@ -203,7 +203,7 @@ func (svc *Service) ValidateMacaroon(ctx context.Context,
 //	authChecker := svc.Checker.Auth(macaroon.Slice{mac})
 //	_, err = authChecker.Allow(ctx, requiredPermissions...)
 
-	err := svc.CheckMacAuth(ctx, md["macaroon"][0], requiredPermissions)
+	err := svc.CheckMacAuth(ctx, md["macaroon"][0], requiredPermissions, fullMethod)
 
 	// If the macaroon contains broad permissions and checks out, we're
 	// done.
@@ -211,19 +211,21 @@ func (svc *Service) ValidateMacaroon(ctx context.Context,
 		return nil
 	}
 
-	// To also allow the special permission of "uri:<FullMethod>" to be a
-	// valid permission, we need to check it manually in case there is no
-	// broader scope permission defined.
-	_, err = authChecker.Allow(ctx, bakery.Op{
-		Entity: PermissionEntityCustomURI,
-		Action: fullMethod,
-	})
 	return err
+
+//	// To also allow the special permission of "uri:<FullMethod>" to be a
+//	// valid permission, we need to check it manually in case there is no
+//	// broader scope permission defined.
+//	_, err = authChecker.Allow(ctx, bakery.Op{
+//		Entity: PermissionEntityCustomURI,
+//		Action: fullMethod,
+//	})
+//	return err
 }
 
 // CheckMacAuth will check that...
-func (svc *Service) CheckMacAuth(ctx ctx.Context, macStr string,
-	requiredPermissions []bakery.Op) error {
+func (svc *Service) CheckMacAuth(ctx context.Context, macStr string,
+	requiredPermissions []bakery.Op, fullMethod string) error {
 
         // With the macaroon obtained, we'll now decode the hex-string
         // encoding, then unmarshal it from binary into its concrete struct
@@ -244,6 +246,15 @@ func (svc *Service) CheckMacAuth(ctx ctx.Context, macStr string,
         _, err = authChecker.Allow(ctx, requiredPermissions...)
 
 	return err
+
+	 // To also allow the special permission of "uri:<FullMethod>" to be a
+        // valid permission, we need to check it manually in case there is no
+        // broader scope permission defined.
+        _, err = authChecker.Allow(ctx, bakery.Op{
+                Entity: PermissionEntityCustomURI,
+                Action: fullMethod,
+        })
+        return err
 }
 
 // Close closes the database that underlies the RootKeyStore and zeroes the
