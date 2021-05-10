@@ -521,7 +521,7 @@ service Lightning {
     permissions... if provided.
     */
     rpc CheckMacaroonPermissions (CheckMacPermRequest)
-	returns (CheckMacPermResponse);
+        returns (CheckMacPermResponse);
 }
 
 message Utxo {
@@ -3888,10 +3888,10 @@ message Op {
 }
 
 message CheckMacPermRequest {
-	string macaroon = 1;
-	repeated MacaroonPermissions permissions = 2;
+    string macaroon = 1;
+    repeated MacaroonPermission permissions = 2;
 }
 
 message CheckMacPermResponse {
-	bool valid = 1;
+    bool valid = 1;
 }
