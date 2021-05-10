@@ -3335,6 +3335,15 @@
         }
       }
     },
+    "lnrpcCheckMacPermResponse": {
+      "type": "object",
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
     "lnrpcCloseStatusUpdate": {
       "type": "object",
       "properties": {
