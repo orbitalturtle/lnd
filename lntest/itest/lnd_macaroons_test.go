@@ -219,6 +219,74 @@ func testMacaroonAuthentication(net *lntest.NetworkHarness, ht *harnessTest) {
 			_, err := adminClient.BakeMacaroon(ctxt, req)
                         require.NoError(t, err)
 		},
+	}, {
+		// Eighth test: check that with the CheckMacaroonPermissions
+		// RPC, we can check that a macaroon follows constraints,
+		// without looking at permissions LND is not familiar with.
+		name: "check macaroon without knowing permissions",
+		run: func(ctxt context.Context, t *testing.T) {
+
+			// A test macaroon created with combined permissions
+			// from LND and daemons from outside LND -- pool, loop,
+			// and faraday.
+			macStr := "0201036c6e6402f003030a10a0565043f79d" +
+				"a76d439e740fc0be27fe1201301a160a076163636f75" +
+				"6e74120472656164120577726974651a160a07616464" +
+				"72657373120472656164120577726974651a0f0a0761" +
+				"756374696f6e1204726561641a0d0a05617564697412" +
+				"04726561641a0c0a04617574681204726561641a130a" +
+				"04696e666f120472656164120577726974651a100a08" +
+				"696e7369676874731204726561641a170a08696e766f" +
+				"69636573120472656164120577726974651a0f0a046c" +
+				"6f6f701202696e12036f75741a210a086d616361726f" +
+				"6f6e120867656e657261746512047265616412057772" +
+				"6974651a160a076d6573736167651204726561641205" +
+				"77726974651a170a086f6666636861696e1204726561" +
+				"64120577726974651a160a076f6e636861696e120472" +
+				"656164120577726974651a140a056f72646572120472" +
+				"656164120577726974651a140a057065657273120472" +
+				"656164120577726974651a0d0a057261746573120472" +
+				"6561641a160a0e7265636f6d6d656e646174696f6e12" +
+				"04726561641a0e0a067265706f72741204726561641a" +
+				"180a067369676e6572120867656e6572617465120472" +
+				"6561641a1a0a0b73756767657374696f6e7312047265" +
+				"6164120577726974651a150a04737761701207657865" +
+				"637574651204726561641a0d0a057465726d73120472" +
+				"65616400000620f3ff20a448b0498fd354327ae3107a" +
+				"d31cca87d8d36ea5710a5a90c0a2cde434"
+
+				// Our request will list zero permissions since LND
+				// won't recognize them.
+			req := &lnrpc.CheckMacPermRequest{
+				Macaroon:    macStr,
+				Permissions: nil,
+			}
+
+			_, err := testNode.CheckMacaroonPermissions(ctxt, req)
+			require.NoError(t, err)
+		},
+	}, {
+		// Ninth test: check that CheckMacaroonPermissions detects a
+		// macaroon that's timed out, even if it's unfamiliar with the
+		// permissions.
+		name: "detect timeout",
+		run: func(ctxt context.Context, t *testing.T) {
+
+			// A test macaroon that is timed out. The macaroon has
+			// combined permissions from LND and daemons from
+			// outside LND -- pool, loop, and faraday.
+			macStr := "0201036c6e6402f003030a100240b01e10a85f41da11b2ad618684221201301a160a076163636f756e74120472656164120577726974651a160a0761646472657373120472656164120577726974651a0f0a0761756374696f6e1204726561641a0d0a0561756469741204726561641a0c0a04617574681204726561641a130a04696e666f120472656164120577726974651a100a08696e7369676874731204726561641a170a08696e766f69636573120472656164120577726974651a0f0a046c6f6f701202696e12036f75741a210a086d616361726f6f6e120867656e6572617465120472656164120577726974651a160a076d657373616765120472656164120577726974651a170a086f6666636861696e120472656164120577726974651a160a076f6e636861696e120472656164120577726974651a140a056f72646572120472656164120577726974651a140a057065657273120472656164120577726974651a0d0a0572617465731204726561641a160a0e7265636f6d6d656e646174696f6e1204726561641a0e0a067265706f72741204726561641a180a067369676e6572120867656e65726174651204726561641a1a0a0b73756767657374696f6e73120472656164120577726974651a150a04737761701207657865637574651204726561641a0d0a057465726d7312047265616400022a74696d652d6265666f726520323032312d30352d30395430323a32323a30382e3835393134383735315a00000620d20291e8f82100c1f5f2518cde12e61bdd4f4781aba561310363939f690450c4"
+
+			// Our request will list zero permissions since LND
+			// won't recognize them.
+			req := &lnrpc.CheckMacPermRequest{
+				Macaroon:    macStr,
+				Permissions: nil,
+			}
+
+			resp, _ := testNode.CheckMacaroonPermissions(ctxt, req)
+			assert.Equal(t, resp.Valid, false, "they should be equal")
+		},
 	}}
 
 	for _, tc := range testCases {
@@ -400,22 +468,22 @@ func testBakeMacaroon(net *lntest.NetworkHarness, t *harnessTest) {
 		// that LND is not familiar with.
 		name: "allow external macaroon permissions",
 		run: func(ctxt context.Context, t *testing.T,
-                        adminClient lnrpc.LightningClient) {
+			adminClient lnrpc.LightningClient) {
 
-			// We'll try a permission from Pool to test if the flag
-			// allows it.
-                        rootKeyID := uint64(4200)
-                        req := &lnrpc.BakeMacaroonRequest{
-                                 RootKeyId: rootKeyID,
-                                 Permissions: []*lnrpc.MacaroonPermission{{
-                                         Entity: "account",
-                                         Action: "read",
-                                 }},
-				 AllowExternalPermissions: true,
-                        }
+			// We'll try a permission from Pool to test that the
+			// allow_external_permissions flag properly allows it.
+			rootKeyID := uint64(4200)
+			req := &lnrpc.BakeMacaroonRequest{
+				RootKeyId: rootKeyID,
+				Permissions: []*lnrpc.MacaroonPermission{{
+					Entity: "account",
+					Action: "read",
+				}},
+				AllowExternalPermissions: true,
+			}
 
 			_, err := adminClient.BakeMacaroon(ctxt, req)
-                        require.NoError(t, err)
+			require.NoError(t, err)
 		},
 	}}
 

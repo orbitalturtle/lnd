@@ -497,6 +497,10 @@ func MainRPCServerPermissions() map[string][]bakery.Op {
 			Entity: "macaroon",
 			Action: "write",
 		}},
+		"/lnrpc.Lightning/CheckMacaroonPermissions": {{
+			Entity: "macaroon",
+			Action: "read",
+		}},
 		"/lnrpc.Lightning/ListPermissions": {{
 			Entity: "info",
 			Action: "read",
@@ -6515,8 +6519,8 @@ func (r *rpcServer) ChannelAcceptor(stream lnrpc.Lightning_ChannelAcceptorServer
 
 // BakeMacaroon allows the creation of a new macaroon with custom read and write
 // permissions. No first-party caveats are added since this can be done offline.
-// If the --allow-external-permissions flag is set, the RPC will allow 
-// external permissions that LND is not aware of. 
+// If the --allow-external-permissions flag is set, the RPC will allow
+// external permissions that LND is not aware of.
 func (r *rpcServer) BakeMacaroon(ctx context.Context,
 	req *lnrpc.BakeMacaroonRequest) (*lnrpc.BakeMacaroonResponse, error) {
 
@@ -6539,7 +6543,7 @@ func (r *rpcServer) BakeMacaroon(ctx context.Context,
 	}
 
 	// Validate and map permission struct used by gRPC to the one used by
-	// the bakery. If the --allow-external-permissions flag is set, we 
+	// the bakery. If the --allow-external-permissions flag is set, we
 	// will not validate, but map.
 	requestedPermissions := make([]bakery.Op, len(req.Permissions))
 	for idx, op := range req.Permissions {
@@ -6687,11 +6691,12 @@ func (r *rpcServer) ListPermissions(_ context.Context,
 	}, nil
 }
 
-// CheckMacaroonPermissions... 
+// CheckMacaroonPermissions checks the caveats and permissions of a macaroon.
 func (r *rpcServer) CheckMacaroonPermissions(ctx context.Context,
-        req *lnrpc.CheckMacPermRequest) (*lnrpc.CheckMacPermResponse, error) {
+	req *lnrpc.CheckMacPermRequest) (*lnrpc.CheckMacPermResponse, error) {
 
-	// Turn grpc macaroon permission into bakery.Op
+	// Turn grpc macaroon permission into bakery.Op for the server to
+	// process.
 	permissions := make([]bakery.Op, 0)
 	for _, perm := range req.Permissions {
 		newPerm := bakery.Op{
@@ -6702,13 +6707,17 @@ func (r *rpcServer) CheckMacaroonPermissions(ctx context.Context,
 		permissions = append(permissions, newPerm)
 	}
 
-	// LAST PARAM HERE: SHOULD WE BE SENDING FULLMETHOD IN SOMEHOW???
-	err := r.macService.CheckMacAuth(ctx, req.Macaroon, permissions, "")
+	err := r.macService.CheckMacAuth(
+		ctx, req.Macaroon, permissions,
+		"/lnrpc.Lightning/CheckMacaroonPermissions",
+	)
 	if err != nil {
-		return nil, err
+		resp := lnrpc.CheckMacPermResponse{
+			Valid: false,
+		}
+		return &resp, nil
 	}
 
-	// NEED TO ADD LOGIC HERE FOR WHETHER IT IS VALID OR NOT
 	return &lnrpc.CheckMacPermResponse{
 		Valid: true,
 	}, nil
