@@ -196,6 +196,80 @@ func testMacaroonAuthentication(net *lntest.NetworkHarness, ht *harnessTest) {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "permission denied")
 		},
+	}, {
+		// Eighth test: check that with the CheckMacaroonPermissions
+		// RPC, we can check that a macaroon follows (or doesn't)
+		// permissions and constraints.
+		name: "unknown permissions",
+		run: func(ctxt context.Context, t *testing.T) {
+			// A test macaroon created with permissions from pool,
+			// to make sure CheckMacaroonPermissions RPC accepts
+			// them.
+			rootKeyID := uint64(4200)
+			req := &lnrpc.BakeMacaroonRequest{
+				RootKeyId: rootKeyID,
+				Permissions: []*lnrpc.MacaroonPermission{{
+					Entity: "account",
+					Action: "read",
+				}, {
+					Entity: "recommendation",
+					Action: "read",
+				}},
+				AllowExternalPermissions: true,
+			}
+			bakeResp, err := testNode.BakeMacaroon(ctxt, req)
+			require.NoError(t, err)
+
+			checkReq := &lnrpc.CheckMacPermRequest{
+				Macaroon:    bakeResp.Macaroon,
+				Permissions: req.Permissions,
+			}
+
+			// Test that CheckMacaroonPermissions accurately
+			// characterizes macaroon as valid, even if the
+			//permissions are not native to LND.
+			checkResp, err := testNode.CheckMacaroonPermissions(
+				ctxt, checkReq,
+			)
+			require.NoError(t, err)
+			require.Equal(t, checkResp.Valid, true)
+
+			mac, err := readMacaroonFromHex(bakeResp.Macaroon)
+			require.NoError(t, err)
+
+			// Test that CheckMacaroonPermissions responds that the
+			//  macaroon is invalid if timed out.
+			timeoutMac, err := macaroons.AddConstraints(
+				mac, macaroons.TimeoutConstraint(-30),
+			)
+
+			timeoutMacBytes, err := timeoutMac.MarshalBinary()
+			require.NoError(t, err)
+
+			timeoutMacStr := hex.EncodeToString(timeoutMacBytes)
+			checkReq.Macaroon = timeoutMacStr
+
+			checkResp, err = testNode.CheckMacaroonPermissions(
+				ctxt, checkReq,
+			)
+			require.NoError(t, err)
+			require.Equal(t, checkResp.Valid, false)
+
+			// Test that CheckMacaroonPermissions labels macaroon
+			// input with wrong permissions as invalid.
+			wrong_permissions := []*lnrpc.MacaroonPermission{{
+				Entity: "",
+				Action: "",
+			}}
+
+			checkReq.Permissions = wrong_permissions
+
+			checkResp, err = testNode.CheckMacaroonPermissions(
+				ctxt, checkReq,
+			)
+			require.NoError(t, err)
+			require.Equal(t, checkResp.Valid, false)
+		},
 	}}
 
 	for _, tc := range testCases {
