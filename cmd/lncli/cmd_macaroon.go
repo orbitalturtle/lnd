@@ -24,7 +24,7 @@ var bakeMacaroonCommand = cli.Command{
 	Category: "Macaroons",
 	Usage: "Bakes a new macaroon with the provided list of permissions " +
 		"and restrictions.",
-	ArgsUsage: "[--save_to=] [--timeout=] [--ip_address=] permissions...",
+	ArgsUsage: "[--save_to=] [--timeout=] [--ip_address=] [--allow_external_permissions=] permissions...",
 	Description: `
 	Bake a new macaroon that grants the provided permissions and
 	optionally adds restrictions (timeout, IP address) to it.
@@ -70,6 +70,10 @@ var bakeMacaroonCommand = cli.Command{
 			Name:  "root_key_id",
 			Usage: "the numerical root key ID used to create the macaroon",
 		},
+		cli.BoolFlag{
+			Name:  "allow_external_permissions",
+			Usage: "whether permissions lnd is not familiar with are allowed",
+		},
 	},
 	Action: actionDecorator(bakeMacaroon),
 }
@@ -85,12 +89,13 @@ func bakeMacaroon(ctx *cli.Context) error {
 	args := ctx.Args()
 
 	var (
-		savePath          string
-		timeout           int64
-		ipAddress         net.IP
-		rootKeyID         uint64
-		parsedPermissions []*lnrpc.MacaroonPermission
-		err               error
+		savePath                 string
+		timeout                  int64
+		ipAddress                net.IP
+		rootKeyID                uint64
+		parsedPermissions        []*lnrpc.MacaroonPermission
+		allowExternalPermissions bool
+		err                      error
 	)
 
 	if ctx.String("save_to") != "" {
@@ -114,6 +119,10 @@ func bakeMacaroon(ctx *cli.Context) error {
 
 	if ctx.IsSet("root_key_id") {
 		rootKeyID = ctx.Uint64("root_key_id")
+	}
+
+	if ctx.IsSet("allow_external_permissions") {
+		allowExternalPermissions = ctx.Bool("allow_external_permissions")
 	}
 
 	// A command line argument can't be an empty string. So we'll check each
@@ -148,8 +157,9 @@ func bakeMacaroon(ctx *cli.Context) error {
 	// Now we have gathered all the input we need and can do the actual
 	// RPC call.
 	req := &lnrpc.BakeMacaroonRequest{
-		Permissions: parsedPermissions,
-		RootKeyId:   rootKeyID,
+		Permissions:              parsedPermissions,
+		RootKeyId:                rootKeyID,
+		AllowExternalPermissions: allowExternalPermissions,
 	}
 	resp, err := client.BakeMacaroon(context.Background(), req)
 	if err != nil {
