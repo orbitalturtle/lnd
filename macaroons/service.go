@@ -3,6 +3,7 @@ package macaroons
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -253,10 +254,28 @@ func (svc *Service) ValidateMacaroon(ctx context.Context,
 			len(md["macaroon"]))
 	}
 
+	err := svc.CheckMacAuth(
+		ctx, md["macaroon"][0], requiredPermissions, fullMethod,
+	)
+
+	// If the macaroon contains broad permissions and checks out, we're
+	// done.
+	if err == nil {
+		return nil
+	}
+
+	return err
+}
+
+// CheckMacAuth checks that the macaroon is not disobeying any caveats and is
+// authorized to perform the operation the user wants to perform.
+func (svc *Service) CheckMacAuth(ctx context.Context, macStr string,
+	requiredPermissions []bakery.Op, fullMethod string) error {
+
 	// With the macaroon obtained, we'll now decode the hex-string
 	// encoding, then unmarshal it from binary into its concrete struct
 	// representation.
-	macBytes, err := hex.DecodeString(md["macaroon"][0])
+	macBytes, err := hex.DecodeString(macStr)
 	if err != nil {
 		return err
 	}
@@ -269,11 +288,16 @@ func (svc *Service) ValidateMacaroon(ctx context.Context,
 	// Check the method being called against the permitted operation, the
 	// expiration time and IP address and return the result.
 	authChecker := svc.Checker.Auth(macaroon.Slice{mac})
-	_, err = authChecker.Allow(ctx, requiredPermissions...)
+	authInfo, err := authChecker.Allow(ctx, requiredPermissions...)
 
 	// If the macaroon contains broad permissions and checks out, we're
 	// done.
 	if err == nil {
+		if authInfo.Used != nil {
+			if authInfo.Used[0] == false {
+				return errors.New("macaroon is not valid")
+			}
+		}
 		return nil
 	}
 
