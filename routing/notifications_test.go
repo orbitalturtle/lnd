@@ -211,6 +211,7 @@ func (m *mockChain) addBlock(block *wire.MsgBlock, height uint32, nonce uint32) 
 	m.blockIndex[height] = hash
 	m.Unlock()
 }
+
 func (m *mockChain) GetBlock(blockHash *chainhash.Hash) (*wire.MsgBlock, error) {
 	m.RLock()
 	defer m.RUnlock()
@@ -317,7 +318,9 @@ func (m *mockChainView) FilterBlock(blockHash *chainhash.Hash) (*chainview.Filte
 		return nil, err
 	}
 
-	filteredBlock := &chainview.FilteredBlock{}
+	filteredBlock := &chainview.FilteredBlock{
+		Hash: *blockHash,
+	}
 	for _, tx := range block.Transactions {
 		for _, txIn := range tx.TxIn {
 			prevOp := txIn.PreviousOutPoint
@@ -352,11 +355,8 @@ func (m *mockChainView) Stop() error {
 func TestEdgeUpdateNotification(t *testing.T) {
 	t.Parallel()
 
-	ctx, cleanUp, err := createTestCtxSingleNode(0)
+	ctx, cleanUp := createTestCtxSingleNode(t, 0)
 	defer cleanUp()
-	if err != nil {
-		t.Fatalf("unable to create router: %v", err)
-	}
 
 	// First we'll create the utxo for the channel to be "closed"
 	const chanValue = 10000
@@ -546,11 +546,8 @@ func TestNodeUpdateNotification(t *testing.T) {
 	t.Parallel()
 
 	const startingBlockHeight = 101
-	ctx, cleanUp, err := createTestCtxSingleNode(startingBlockHeight)
+	ctx, cleanUp := createTestCtxSingleNode(t, startingBlockHeight)
 	defer cleanUp()
-	if err != nil {
-		t.Fatalf("unable to create router: %v", err)
-	}
 
 	// We only accept node announcements from nodes having a known channel,
 	// so create one now.
@@ -739,11 +736,8 @@ func TestNotificationCancellation(t *testing.T) {
 	t.Parallel()
 
 	const startingBlockHeight = 101
-	ctx, cleanUp, err := createTestCtxSingleNode(startingBlockHeight)
+	ctx, cleanUp := createTestCtxSingleNode(t, startingBlockHeight)
 	defer cleanUp()
-	if err != nil {
-		t.Fatalf("unable to create router: %v", err)
-	}
 
 	// Create a new client to receive notifications.
 	ntfnClient, err := ctx.router.SubscribeTopology()
@@ -831,11 +825,8 @@ func TestChannelCloseNotification(t *testing.T) {
 	t.Parallel()
 
 	const startingBlockHeight = 101
-	ctx, cleanUp, err := createTestCtxSingleNode(startingBlockHeight)
+	ctx, cleanUp := createTestCtxSingleNode(t, startingBlockHeight)
 	defer cleanUp()
-	if err != nil {
-		t.Fatalf("unable to create router: %v", err)
-	}
 
 	// First we'll create the utxo for the channel to be "closed"
 	const chanValue = 10000

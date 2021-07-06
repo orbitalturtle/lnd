@@ -718,6 +718,12 @@ func newServer(cfg *Config, listenAddrs []net.Addr,
 			return 0
 		}
 
+		// If our link isn't currently in a state where it can
+		// add another outgoing htlc, treat the link as unusable.
+		if err := link.MayAddOutgoingHtlc(); err != nil {
+			return 0
+		}
+
 		// Otherwise, we'll return the current best estimate
 		// for the available bandwidth for the link.
 		return link.Bandwidth()
@@ -778,6 +784,7 @@ func newServer(cfg *Config, listenAddrs []net.Addr,
 		Graph:               chanGraph,
 		Chain:               cc.ChainIO,
 		ChainView:           cc.ChainView,
+		Notifier:            cc.ChainNotifier,
 		Payer:               s.htlcSwitch,
 		Control:             s.controlTower,
 		MissionControl:      s.missionControl,
@@ -1758,6 +1765,12 @@ func (s *server) Start() error {
 			setSeedList(
 				s.cfg.Bitcoin.DNSSeeds,
 				chainreg.BitcoinTestnetGenesis,
+			)
+		}
+		if s.cfg.Bitcoin.Active && s.cfg.Bitcoin.SigNet {
+			setSeedList(
+				s.cfg.Bitcoin.DNSSeeds,
+				chainreg.BitcoinSignetGenesis,
 			)
 		}
 		if s.cfg.Litecoin.Active && s.cfg.Litecoin.MainNet {
