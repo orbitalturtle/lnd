@@ -5,6 +5,7 @@
 package lnd
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -17,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/lightninglabs/neutrino"
@@ -154,6 +156,10 @@ const (
 	// channel state updates that is accumulated before signing a new
 	// commitment.
 	defaultChannelCommitBatchSize = 10
+
+	// defaultCoinSelectionStrategy is the coin selection strategy that is
+	// used by default to fund transactions.
+	defaultCoinSelectionStrategy = "largest"
 )
 
 var (
@@ -254,6 +260,7 @@ type Config struct {
 	WSPingInterval    time.Duration `long:"ws-ping-interval" description:"The ping interval for REST based WebSocket connections, set to 0 to disable sending ping messages from the server side"`
 	WSPongWait        time.Duration `long:"ws-pong-wait" description:"The time we wait for a pong response message on REST based WebSocket connections before the connection is closed as inactive"`
 	NAT               bool          `long:"nat" description:"Toggle NAT traversal support (using either UPnP or NAT-PMP) to automatically advertise your external IP address to the network -- NOTE this does not support devices behind multiple NATs"`
+	AddPeers          []string      `long:"addpeer" description:"Specify peers to connect to first"`
 	MinBackoff        time.Duration `long:"minbackoff" description:"Shortest backoff when reconnecting to persistent peers. Valid time units are {s, m, h}."`
 	MaxBackoff        time.Duration `long:"maxbackoff" description:"Longest backoff when reconnecting to persistent peers. Valid time units are {s, m, h}."`
 	ConnectionTimeout time.Duration `long:"connectiontimeout" description:"The timeout value for network connections. Valid time units are {ms, s, m, h}."`
@@ -293,9 +300,12 @@ type Config struct {
 	NoNetBootstrap bool `long:"nobootstrap" description:"If true, then automatic network bootstrapping will not be attempted."`
 
 	NoSeedBackup             bool   `long:"noseedbackup" description:"If true, NO SEED WILL BE EXPOSED -- EVER, AND THE WALLET WILL BE ENCRYPTED USING THE DEFAULT PASSPHRASE. THIS FLAG IS ONLY FOR TESTING AND SHOULD NEVER BE USED ON MAINNET."`
-	WalletUnlockPasswordFile string `long:"wallet-unlock-password-file" description:"The full path to a file (or pipe/device) that contains the password for unlocking the wallet; if set, no unlocking through RPC is possible and lnd will exit if no wallet exists or the password is incorrect"`
+	WalletUnlockPasswordFile string `long:"wallet-unlock-password-file" description:"The full path to a file (or pipe/device) that contains the password for unlocking the wallet; if set, no unlocking through RPC is possible and lnd will exit if no wallet exists or the password is incorrect; if wallet-unlock-allow-create is also set then lnd will ignore this flag if no wallet exists and allow a wallet to be created through RPC."`
+	WalletUnlockAllowCreate  bool   `long:"wallet-unlock-allow-create" description:"Don't fail with an error if wallet-unlock-password-file is set but no wallet exists yet."`
 
 	ResetWalletTransactions bool `long:"reset-wallet-transactions" description:"Removes all transaction history from the on-chain wallet on startup, forcing a full chain rescan starting at the wallet's birthday. Implements the same functionality as btcwallet's dropwtxmgr command. Should be set to false after successful execution to avoid rescanning on every restart of lnd."`
+
+	CoinSelectionStrategy string `long:"coin-selection-strategy" description:"The strategy to use for selecting coins for wallet transactions." choice:"largest" choice:"random"`
 
 	PaymentsExpirationGracePeriod time.Duration `long:"payments-expiration-grace-period" description:"A period to wait before force closing channels with outgoing htlcs that have timed-out and are a result of this node initiated payments."`
 	TrickleDelay                  int           `long:"trickledelay" description:"Time in milliseconds between each release of announcements to the network"`
@@ -547,6 +557,7 @@ func DefaultConfig() Config {
 		ActiveNetParams:         chainreg.BitcoinTestNetParams,
 		ChannelCommitInterval:   defaultChannelCommitInterval,
 		ChannelCommitBatchSize:  defaultChannelCommitBatchSize,
+		CoinSelectionStrategy:   defaultCoinSelectionStrategy,
 	}
 }
 
@@ -952,6 +963,10 @@ func ValidateConfig(cfg Config, usageMessage string,
 			numNets++
 			ltcParams = chainreg.LitecoinSimNetParams
 		}
+		if cfg.Litecoin.SigNet {
+			return nil, fmt.Errorf("%s: litecoin.signet is not "+
+				"supported", funcName)
+		}
 
 		if numNets > 1 {
 			str := "%s: The mainnet, testnet, and simnet params " +
@@ -1032,6 +1047,45 @@ func ValidateConfig(cfg Config, usageMessage string,
 		if cfg.Bitcoin.SimNet {
 			numNets++
 			cfg.ActiveNetParams = chainreg.BitcoinSimNetParams
+		}
+		if cfg.Bitcoin.SigNet {
+			numNets++
+			cfg.ActiveNetParams = chainreg.BitcoinSigNetParams
+
+			// Let the user overwrite the default signet parameters.
+			// The challenge defines the actual signet network to
+			// join and the seed nodes are needed for network
+			// discovery.
+			sigNetChallenge := chaincfg.DefaultSignetChallenge
+			sigNetSeeds := chaincfg.DefaultSignetDNSSeeds
+			if cfg.Bitcoin.SigNetChallenge != "" {
+				challenge, err := hex.DecodeString(
+					cfg.Bitcoin.SigNetChallenge,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("%s: Invalid "+
+						"signet challenge, hex decode "+
+						"failed: %v", funcName, err)
+				}
+				sigNetChallenge = challenge
+			}
+
+			if len(cfg.Bitcoin.SigNetSeedNode) > 0 {
+				sigNetSeeds = make([]chaincfg.DNSSeed, len(
+					cfg.Bitcoin.SigNetSeedNode,
+				))
+				for idx, seed := range cfg.Bitcoin.SigNetSeedNode {
+					sigNetSeeds[idx] = chaincfg.DNSSeed{
+						Host:         seed,
+						HasFiltering: false,
+					}
+				}
+			}
+
+			chainParams := chaincfg.CustomSignetParams(
+				sigNetChallenge, sigNetSeeds,
+			)
+			cfg.ActiveNetParams.Params = &chainParams
 		}
 		if numNets > 1 {
 			str := "%s: The mainnet, testnet, regtest, and " +
@@ -1294,6 +1348,11 @@ func ValidateConfig(cfg Config, usageMessage string,
 	case cfg.NoSeedBackup && cfg.WalletUnlockPasswordFile != "":
 		return nil, fmt.Errorf("cannot set noseedbackup and " +
 			"wallet-unlock-password-file at the same time")
+
+	// The "allow-create" flag cannot be set without the auto unlock file.
+	case cfg.WalletUnlockAllowCreate && cfg.WalletUnlockPasswordFile == "":
+		return nil, fmt.Errorf("cannot set wallet-unlock-allow-create " +
+			"without wallet-unlock-password-file")
 
 	// If a password file was specified, we need it to exist.
 	case cfg.WalletUnlockPasswordFile != "" &&
@@ -1704,7 +1763,7 @@ func extractBitcoindRPCParams(networkName string,
 	switch networkName {
 	case "mainnet":
 		chainDir = ""
-	case "regtest", "testnet3":
+	case "regtest", "testnet3", "signet":
 		chainDir = networkName
 	default:
 		return "", "", "", "", fmt.Errorf("unexpected networkname %v", networkName)

@@ -718,6 +718,12 @@ func newServer(cfg *Config, listenAddrs []net.Addr,
 			return 0
 		}
 
+		// If our link isn't currently in a state where it can
+		// add another outgoing htlc, treat the link as unusable.
+		if err := link.MayAddOutgoingHtlc(); err != nil {
+			return 0
+		}
+
 		// Otherwise, we'll return the current best estimate
 		// for the available bandwidth for the link.
 		return link.Bandwidth()
@@ -1701,6 +1707,22 @@ func (s *server) Start() error {
 			return nil
 		})
 
+		// If peers are specified as a config option, we'll add those peers first.
+		if len(s.cfg.AddPeers) != 0 {
+			for _, peerAddr := range s.cfg.AddPeers {
+				parsedPeerAddr, err := lncfg.ParseLNAddressString(peerAddr, strconv.Itoa(defaultPeerPort), net.ResolveTCPAddr)
+				if err != nil {
+					startErr = fmt.Errorf("unable to parse peer address provided as a config option: %v", err)
+					return
+				}
+
+				err = s.ConnectToPeer(parsedPeerAddr, true, s.cfg.ConnectionTimeout)
+				if err != nil {
+					startErr = fmt.Errorf("unable to connect to peer address provided as a config option: %v", err)
+				}
+			}
+		}
+
 		// With all the relevant sub-systems started, we'll now attempt
 		// to establish persistent connections to our direct channel
 		// collaborators within the network. Before doing so however,
@@ -1758,6 +1780,12 @@ func (s *server) Start() error {
 			setSeedList(
 				s.cfg.Bitcoin.DNSSeeds,
 				chainreg.BitcoinTestnetGenesis,
+			)
+		}
+		if s.cfg.Bitcoin.Active && s.cfg.Bitcoin.SigNet {
+			setSeedList(
+				s.cfg.Bitcoin.DNSSeeds,
+				chainreg.BitcoinSignetGenesis,
 			)
 		}
 		if s.cfg.Litecoin.Active && s.cfg.Litecoin.MainNet {
